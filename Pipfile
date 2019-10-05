@@ -1,0 +1,36 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+scikit-learn = "*"
+numpy = "*"
+pandas = "*"
+japanize-matplotlib = "*"
+seaborn = "*"
+matplotlib = "*"
+jupyter = "*"
+scipy = "*"
+tqdm = "*"
+environment-kernels = "*"
+jupytext = "*"
+emoji = "*"
+krippendorff = "*"
+neologdn = "*"
+mecab-python3 ="*"
+gensim = "*"
+pyldavis = "*"
+torch = "*"
+torchvision = "*"
+jupyter-contrib-nbextensions = "*"
+cython = "*"
+requests = "*"
+dask = {extras = ["array"],version = "*"}
+cupy-cuda90 = "*"
+umap-learn = "*"
+
+[requires]
+python_version = "3.6"
