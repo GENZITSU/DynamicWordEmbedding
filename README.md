@@ -5,7 +5,7 @@ implementation of dynamic word embedding based on
 
 Examples from the paper  
 <img src="./images/word_trajectories.png" width="800">  
-<img src="./images/equivalence_searching.png" width="600">
+<img src="./images/equivalence_searching.png" width="400">
 
 # Usage
 [WIP]
