@@ -67,17 +67,17 @@ def preprocess_one_day_tweet(tweet_path):
     tweet_path:  str
     NOTE
     ----
-    tweet_path[51:-5]中にある日付を保存する際の名前にしている
+    tweet_path[-15:-5]中にある日付を保存する際の名前にしている
     日付の位置が違う場合は適宜変更のこと
     '''
-    date = tweet_path[51:-5]
+    date = tweet_path[-15:-5]
     ### Twieetの読み込み
     with timer(f"reading {date}", LOGGER):
         tweet_list = []
         with open(tweet_path) as f:
             l = f.readline()
             # while l:
-            for _ in range(100000): # for debug
+            for _ in range(10000): # for debug
                 l = f.readline()
                 try:
                     if len(l) == 0:
@@ -111,7 +111,7 @@ def preprocess_one_day_tweet(tweet_path):
         tweet_df["body"] = tweet_df["body"].map(lambda x: m.parse(x))
     
     # 保存
-     with open(PREPROCESSED_DATA_PATH+"tokenized_tweets/"+date+".pickle", mode="wb") as f:
-         pickle.dump(tweet_df, f)
+    with open(PREPROCESSED_DATA_PATH+"tokenized_tweets/"+date+".pickle", mode="wb") as f:
+        pickle.dump(tweet_df, f)
     
     return None

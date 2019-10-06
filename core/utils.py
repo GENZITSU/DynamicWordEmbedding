@@ -1,15 +1,20 @@
 # -*- coding: utf-8 -*-
+import os
 import time
 import json
 import requests
 from contextlib import contextmanager
 
 
-def progress_reporter(text, slack_url="https://hooks.slack.com/services/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"):
+SLACK_URL = os.getenv("SLACK_URL", "")
+
+def progress_reporter(text, slack_url=SLACK_URL):
     '''該当slackチャンネルにメッセージを送信する
+    slack urlが""の時は送らない
     '''
-    data = json.dumps({"text": text, "username": 'progress_report'})
-    requests.post(slack_url, data=data)
+    if slack_url != "":
+        data = json.dumps({"text": text, "username": 'progress_report'})
+        requests.post(slack_url, data=data)
     return
 
 

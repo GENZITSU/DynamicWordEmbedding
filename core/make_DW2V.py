@@ -387,18 +387,20 @@ def make_DW2V(param_path, EPS=1e-4):
                         Ulist[t][ind] = util.update(Vlist[t],emph*pmi_seg,up,un,
                                                     lam,tau,gam,ind,embed_size,iflag)
 
-            with timer(f"Save iter {iteration} / {ITERS} result", LOGGER):
-                pickle.dump(Ulist, open(f"{savefile}ngU_iter{iteration}.pickle", mode="wb"))
-                pickle.dump(Vlist, open(f"{savefile}ngV_iter{iteration}.pickle", mode="wb"))
+            # 保存
+            pickle.dump(Ulist, open(f"{savefile}ngU_iter{iteration}.pickle", mode="wb"))
+            pickle.dump(Vlist, open(f"{savefile}ngV_iter{iteration}.pickle", mode="wb"))
 
-                if iteration >= 2:
-                    # HDDの節約
-                    os.remove(f"{savefile}ngU_iter{iteration-2}.pickle")
-                    os.remove(f"{savefile}ngV_iter{iteration-2}.pickle")
+            if iteration >= 2:
+                # HDDの節約
+                os.remove(f"{savefile}ngU_iter{iteration-2}.pickle")
+                os.remove(f"{savefile}ngV_iter{iteration-2}.pickle")
 
-                diff_U, diff_V, diff_U_V = util.check_diff(iteration, savefile)
-                diffs.append([diff_U, diff_V, diff_U_V])
+            diff_U, diff_V, diff_U_V = util.check_diff(iteration, savefile)
+            diffs.append([diff_U, diff_V, diff_U_V])
 
-                # ほとんど変化しなくなったら終了
-                if (diff_U + diff_V)/2 < EPS and diff_U != 0.:
-                    break
+            # ほとんど変化しなくなったら終了
+            if (diff_U + diff_V)/2 < EPS and diff_U != 0.:
+                break
+                
+    return diffs
