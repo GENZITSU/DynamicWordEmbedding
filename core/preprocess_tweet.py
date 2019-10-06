@@ -16,6 +16,7 @@ from core.utils import timer
 
 MeCab_DICT_PATH = os.getenv("MeCab_DICT_PATH")
 PREPROCESSED_DATA_PATH = os.getenv("PREPROCESSED_DATA_PATH")
+TXT_DATA_NAME = os.getenv("TXT_DATA_NAME")
 
 # Logging
 LOGGER = logging.getLogger('JobLogging')
@@ -110,7 +111,7 @@ def preprocess_one_day_tweet(tweet_path):
         tweet_df["body"] = tweet_df["body"].map(lambda x: m.parse(x))
 
     # 保存
-    with open(PREPROCESSED_DATA_PATH+"tokenized_tweets/"+date+".pickle", mode="wb") as f:
+    with open(PREPROCESSED_DATA_PATH+TXT_DATA_NAME+"/"+date+".pickle", mode="wb") as f:
         pickle.dump(tweet_df, f)
 
     return None

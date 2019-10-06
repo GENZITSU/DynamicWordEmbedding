@@ -15,8 +15,8 @@ from core import util_timeCD as util
 
 MeCab_DICT_PATH = os.getenv("MeCab_DICT_PATH")
 PREPROCESSED_DATA_PATH = os.getenv("PREPROCESSED_DATA_PATH")
-N_JOB = int(os.getenv("NJOB", "10"))
-WORD_FREQ_MIN = int(os.getenv("WORD_FREQ_MIN", "5"))
+N_JOB = int(os.getenv("N_JOB"))
+WORD_FREQ_MIN = int(os.getenv("WORD_FREQ_MIN"))
 DW2V_PATH = os.getenv("DW2V_PATH")
 
 # Logging
@@ -120,8 +120,7 @@ def make_co_occ_dict(tweet_path, window_size=7):
         del tweets #不要な変数を削除
 
     # 単語の共起を記録
-    # with timer(f"make co_occ_dict {date}", LOGGER):
-    with do_job(f"make co_occ_dict {date}", LOGGER):
+    with timer(f"make co_occ_dict {date}", LOGGER):
         co_occ_dict = {w: [] for w in word2idx.keys()}
         word_count = np.zeros(unique_word_num)
         tweet_sum_len = len(splited_tweet)
@@ -188,8 +187,7 @@ def make_one_day_ppmi_list(path_tuple):
         idxconverter = pickle.load(f)
     idx2word = {i: w for w, i in word2idx.items()}
 
-    # with timer(f"calc ppmi_list {date}", LOGGER):
-    with do_job(f"calc ppmi_list {date}", LOGGER):
+    with timer(f"calc ppmi_list {date}", LOGGER):
         # |D| : total number of tokens in corpus
         D = get_number_of_tokens(tweet_path)
 

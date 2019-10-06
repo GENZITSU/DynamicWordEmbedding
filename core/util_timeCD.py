@@ -42,15 +42,12 @@ def getmat(f, v, rowflag):
     '''
     with open (f, mode="rb") as f:
         data = pickle.load(f)
-    
     # 転置
     X = ss.coo_matrix((data[:,0],(data[:,2],data[:,1])),shape=(v,v))
-   
-    if rowflag: 
+    if rowflag:
         X = ss.csr_matrix(X)
     else:
         X = ss.csc_matrix(X)
-    
     return X
 
 def getbatches(vocab,b):
