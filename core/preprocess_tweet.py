@@ -14,9 +14,8 @@ import pandas as pd
 
 from core.utils import timer
 
-MeCab_DICT_PATH = os.getenv("MeCab_DICT_PATH", "/usr/lib/mecab/dic/mecab-ipadic-neologd/")
-PREPROCESSED_DATA_PATH = os.getenv("PREPROCESSED_DATA_PATH",
-                                    "/mnt/NAS0CAC8A/k-syo/DW2V/preprocessed_data/")
+MeCab_DICT_PATH = os.getenv("MeCab_DICT_PATH")
+PREPROCESSED_DATA_PATH = os.getenv("PREPROCESSED_DATA_PATH")
 
 # Logging
 LOGGER = logging.getLogger('JobLogging')

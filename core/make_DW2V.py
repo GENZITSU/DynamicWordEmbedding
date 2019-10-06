@@ -13,12 +13,11 @@ from core.utils import timer, do_job
 from core import util_timeCD as util
 
 
-MeCab_DICT_PATH = os.getenv("MeCab_DICT_PATH", "/usr/lib/mecab/dic/mecab-ipadic-neologd/")
-PREPROCESSED_DATA_PATH = os.getenv("PREPROCESSED_DATA_PATH",
-                                    "/mnt/NAS0CAC8A/k-syo/DW2V/preprocessed_data/")
+MeCab_DICT_PATH = os.getenv("MeCab_DICT_PATH")
+PREPROCESSED_DATA_PATH = os.getenv("PREPROCESSED_DATA_PATH")
 N_JOB = int(os.getenv("NJOB", "10"))
 WORD_FREQ_MIN = int(os.getenv("WORD_FREQ_MIN", "5"))
-DW2V_PATH = os.getenv("DW2V_PATH", "/mnt/NAS0CAC8A/k-syo/DW2V/")
+DW2V_PATH = os.getenv("DW2V_PATH")
 
 # Logging
 LOGGER = logging.getLogger('JobLogging')

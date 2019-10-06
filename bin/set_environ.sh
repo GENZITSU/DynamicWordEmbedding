@@ -3,6 +3,8 @@
 ### Set up training environment.
 # source data path
 export DATA_PATH = "<your data_path>"
+# mecab dictionary path
+export MeCab_DICT_PATH = "<your Mecab dict dict>"
 # mid output directory
 export PREPROCESSED_DATA_PATH = "/home/jovyan/DW2V/preprocessed_data/"
 # final output directory

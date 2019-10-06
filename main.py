@@ -10,12 +10,11 @@ import pandas as pd
 from core.utils import timer, do_job
 
 # PATH
-DATA_PATH = os.getenv("DATA_PATH", "/mnt/NAS0CAC8A/collaborations/dentsuPR2019/")
-PREPROCESSED_DATA_PATH = os.getenv("PREPROCESSED_DATA_PATH",
-                                    "/mnt/NAS0CAC8A/k-syo/DW2V/preprocessed_data/")
+DATA_PATH = os.getenv("DATA_PATH")
+PREPROCESSED_DATA_PATH = os.getenv("PREPROCESSED_DATA_PATH")
 N_JOB = int(os.getenv("NJOB", "10"))
-DW2V_PATH = os.getenv("DW2V_PATH", "/mnt/NAS0CAC8A/k-syo/DW2V/")
-PARAM_PATH = os.getenv("PARAM_PATH", "/home/k-syo/DynamicWordEmbedding/params/DW2V/")
+DW2V_PATH = os.getenv("DW2V_PATH")
+PARAM_PATH = os.getenv("PARAM_PATH")
 
 # Logger
 LOGGER = logging.getLogger('JobLogging')
