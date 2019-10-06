@@ -58,7 +58,7 @@ def remove_noise(string):
     string = re.sub(r"&gt;", ">", string)
     # &lt;を<に
     string = re.sub(r"&lt;", "<", string)
-    
+
     return string
 
 
@@ -92,7 +92,7 @@ def preprocess_one_day_tweet(tweet_path):
 
         tweet_df = pd.DataFrame(tweet_list)
         tweet_list = None # 不必要な変数を削除
-    
+
 
     ### Tweet分の前処理
     # ノイズを処理
@@ -107,11 +107,11 @@ def preprocess_one_day_tweet(tweet_path):
 
     # 分かち書き
     with timer(f"tokenizing {date}", LOGGER):
-        m = MeCab.Tagger(f"-Owakati -d {MeCab_DICT_PATH}")    
+        m = MeCab.Tagger(f"-Owakati -d {MeCab_DICT_PATH}")
         tweet_df["body"] = tweet_df["body"].map(lambda x: m.parse(x))
-    
+
     # 保存
     with open(PREPROCESSED_DATA_PATH+"tokenized_tweets/"+date+".pickle", mode="wb") as f:
         pickle.dump(tweet_df, f)
-    
+
     return None

@@ -43,14 +43,14 @@ def check_one_day_word(tweet_path):
     with timer(f"check one day word {date}", LOGGER):
         with open(tweet_path, mode="rb") as f:
             df = pickle.load(f)
-    
+
         tweets = df["body"].values
         del df #不要な変数を削除
         tweets = " ".join(tweets)
         tweets = tweets.split(" ")
-    
+
         word_set = set(tweets)
-        
+
         with open(PREPROCESSED_DATA_PATH+"word_sets/"+date+".pickle", mode="wb") as f:
             pickle.dump(word_set, f)
     return
@@ -66,7 +66,7 @@ def make_unique_word2idx(TWEETS_PATHS):
             os.mkdir(PREPROCESSED_DATA_PATH+"word_sets")
     with Pool(processes=N_JOB) as p:
         p.map(check_one_day_word, TWEETS_PATHS)
-    
+
     # 全単語のsetを結合
     WORD_SET_PATHS = glob.glob(PREPROCESSED_DATA_PATH+"word_sets/*")
     unique_word_set = set()
@@ -77,7 +77,7 @@ def make_unique_word2idx(TWEETS_PATHS):
 
     # dictionaryを作成
     word2idx = {w:i for i,w in enumerate(unique_word_set)}
-    
+
     # 保存
     with open(PREPROCESSED_DATA_PATH+"unique_word2idx.pickle", mode="wb") as f:
         pickle.dump(word2idx, f)
@@ -112,14 +112,14 @@ def make_co_occ_dict(tweet_path, window_size=7):
     with timer(f"load {date} data", LOGGER):
         with open(tweet_path, mode="rb") as f:
             df = pickle.load(f)
-        
+
         tweets = df["body"].values
         np.random.shuffle(tweets)
         del df #不要な変数を削除
         tweets = " ".join(tweets)
         splited_tweet = tweets.split(" ")
         del tweets #不要な変数を削除
-    
+
     # 単語の共起を記録
     # with timer(f"make co_occ_dict {date}", LOGGER):
     with do_job(f"make co_occ_dict {date}", LOGGER):
@@ -141,15 +141,15 @@ def make_co_occ_dict(tweet_path, window_size=7):
                         co_occ_dict[w] = co_list
             except:
                 continue
-                
+
         del co_list #不要な変数を削除
         del splited_tweet #不要な変数を削除
-        
+
         # 保存
         save_path = PREPROCESSED_DATA_PATH+"co_occ_dict_word_count/"+date+".pickle"
         with open(save_path, mode="wb") as f:
             pickle.dump((co_occ_dict, word_count), f)
-            
+
     return
 
 
@@ -247,7 +247,7 @@ def make_whole_day_ppmi_list(PATH_TUPLES):
         DICT_PATHS = sorted(glob.glob(PREPROCESSED_DATA_PATH+"co_occ_dict_word_count/*"))
         with open(DICT_PATHS[-1], mode="rb") as f:
             _, word_count = pickle.load(f)
-            
+
         # word -> idxのマッピングの制限で実現する
         idxconverter = {}
         new_idx = 0
@@ -255,11 +255,11 @@ def make_whole_day_ppmi_list(PATH_TUPLES):
             if word_count[old_idx] >= WORD_FREQ_MIN :
                 idxconverter[old_idx] = new_idx
                 new_idx += 1
-        
+
         # 保存
         with open(PREPROCESSED_DATA_PATH+"filtered_word_idx_converter.pickle", mode="wb") as f:
             pickle.dump(idxconverter, f)
-        
+
         del word2idx, word_count, idxconverter
 
     if not os.path.exists(PREPROCESSED_DATA_PATH+"ppmi_list/"):
@@ -402,5 +402,5 @@ def make_DW2V(param_path, EPS=1e-4):
             # ほとんど変化しなくなったら終了
             if (diff_U + diff_V)/2 < EPS and diff_U != 0.:
                 break
-                
+
     return diffs
