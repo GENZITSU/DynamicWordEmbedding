@@ -29,7 +29,7 @@ LOGGER.info("job start")
 parser = argparse.ArgumentParser(description='train Dynamic Word Embeddings')
 parser.add_argument('--without_preprocess', type=int, default=0, metavar='N',
                     help='if preprocessor is not neccessary, set 1')
-parser.add_argument('--n_job', type=str, default="10", metavar='N',
+parser.add_argument('--n_job', type=str, default="5", metavar='N',
                     help='number of cpu for multiprocessing')
 parser.add_argument('--word_freq_min', type=str, default="5", metavar='N',
                     help='minmiun freqency for target word')

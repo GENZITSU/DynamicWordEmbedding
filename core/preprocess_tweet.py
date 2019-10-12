@@ -76,8 +76,7 @@ def preprocess_one_day_tweet(tweet_path):
         tweet_list = []
         with open(tweet_path) as f:
             l = f.readline()
-            # while l:
-            for _ in range(10000): # for debug
+            while l:
                 l = f.readline()
                 try:
                     if len(l) == 0:
