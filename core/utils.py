@@ -39,7 +39,6 @@ def do_job(name, LOGGER):
         LOGGER.info(f'[{name}] done in {time.time() - start:.0f} s')
         progress_reporter(f'[{name}] done in {time.time() - start:.0f} s')
     except:
-        yield
         import traceback, sys
         exc_type, exc_value, exc_traceback = sys.exc_info()
         exc_lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
