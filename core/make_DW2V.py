@@ -17,6 +17,7 @@ MeCab_DICT_PATH = os.getenv("MeCab_DICT_PATH")
 PREPROCESSED_DATA_PATH = os.getenv("PREPROCESSED_DATA_PATH")
 N_JOB = int(os.getenv("N_JOB"))
 WORD_FREQ_MIN = int(os.getenv("WORD_FREQ_MIN"))
+TXT_DATA_NAME = os.getenv("TXT_DATA_NAME")
 DW2V_PATH = os.getenv("DW2V_PATH")
 
 # Logging
@@ -83,8 +84,8 @@ def make_unique_word2idx(TWEETS_PATHS):
     return
 
 
-def make_co_occ_dict(tweet_path, window_size=7):
-    '''単語の共起と単語の出現回数を保存する
+def make_one_day_co_occ_dict(tweet_path, window_size=11):
+    '''ある日の単語の共起と単語の出現回数を保存する
     Params
     ------
     tweet_path: str
@@ -104,49 +105,122 @@ def make_co_occ_dict(tweet_path, window_size=7):
     日付の位置が違う場合は適宜変更のこと
     '''
     date = tweet_path[-17:-7]
-    with open(PREPROCESSED_DATA_PATH+"unique_word2idx.pickle", mode="rb") as f:
-        word2idx = pickle.load(f)
-    unique_word_num = len(word2idx.keys())
+
+    with open(PREPROCESSED_DATA_PATH+"filtered_word2idx.pickle", mode="rb") as f:
+        filtered_word2idx = pickle.load(f)
+    filtered_word_num = len(filtered_word2idx)
 
     with timer(f"load {date} data", LOGGER):
+        # ツイートデータの呼び出し
         with open(tweet_path, mode="rb") as f:
             df = pickle.load(f)
-
         tweets = df["body"].values
-        np.random.shuffle(tweets)
         del df #不要な変数を削除
-        tweets = " ".join(tweets)
-        splited_tweet = tweets.split(" ")
-        del tweets #不要な変数を削除
 
     # 単語の共起を記録
     with timer(f"make co_occ_dict {date}", LOGGER):
-        co_occ_dict = {w: [] for w in word2idx.keys()}
-        word_count = np.zeros(unique_word_num)
-        tweet_sum_len = len(splited_tweet)
-        for i, w in enumerate(splited_tweet):
-            try:
-                word_count[word2idx[w]] += 1
-                for window_idx in range(1, int((window_size + 1)/2+1)):
-                    if i - window_idx >= 0:
-                        co_list = co_occ_dict[w]
-                        co_list.append(splited_tweet[i-window_idx])
-                        co_occ_dict[w] = co_list
+        co_occ_dict = {w: [] for w in filtered_word2idx.keys()}
+        word_count = np.zeros(filtered_word_num)
+        for tweet in tweets:
+            splited_tweet = tweet.split(" ")
+            tweet_len = len(splited_tweet)
+            for i, w in enumerate(splited_tweet):
+                try:
+                    word_count[filtered_word2idx[w]] += 1
+                    for window_idx in range(1, int((window_size + 1)/2+1)):
+                        if (i - window_idx >= 0) and i+window_idx < tweet_len:
+                            co_list = co_occ_dict[w]
+                            co_occ_word = splited_tweet[i-window_idx]
+                            # idで保存
+                            co_list.append(filtered_word2idx[co_occ_word])
+                            co_occ_dict[w] = co_list
+                except KeyError:
+                    # filtered word2idxにないものは無視
+                    continue
 
-                    if i+window_idx < tweet_sum_len:
-                        co_list = co_occ_dict[w]
-                        co_list.append(splited_tweet[i+window_idx])
-                        co_occ_dict[w] = co_list
-            except:
-                continue
-
-        del co_list #不要な変数を削除
-        del splited_tweet #不要な変数を削除
+        #不要な変数を削除
+        del co_list, splited_tweet
 
         # 保存
         save_path = PREPROCESSED_DATA_PATH+"co_occ_dict_word_count/"+date+".pickle"
         with open(save_path, mode="wb") as f:
             pickle.dump((co_occ_dict, word_count), f)
+
+    return
+
+
+def make_whole_day_co_occ_dict(TWEETS_PATHS, window_size=11):
+    '''単語の共起と単語の出現回数を保存する
+    Params
+    ------
+    TWEETS_PATHS: [str, str, ...]
+    tweet(文書)のDataFrameが保存されているPathのリスト
+    DataFrameには文書が入っているカラム"body"が必要
+    時系列にそってsort済みであることが必要
+    window_size: int
+    共起をカウントする検索幅、自身+前後の単語の総数
+    奇数推奨
+    Return
+    ------
+    None
+    (単語の共起の隣接リスト, 単語の出現回数 array)のtuple
+    を保存して行く
+    NOTE
+    ----
+    tweet_path[-17:-7]中にある日付を保存する際の名前にしている
+    日付の位置が違う場合は適宜変更のこと
+    - WORD_FREQ_MINによって対象単語が制限される
+    '''
+    ### 対象単語を制限
+    with timer(f"filter words", LOGGER):
+        # データを読み込む
+        with open(PREPROCESSED_DATA_PATH+"unique_word2idx.pickle", mode="rb") as f:
+            word2idx = pickle.load(f)
+        unique_word_num = len(word2idx.keys())
+
+        with open(TWEETS_PATHS[-1], mode="rb") as f:
+            df = pickle.load(f)
+        tweets = df["body"].values
+        del df
+
+        # カウント
+        word_count = np.zeros(unique_word_num)
+        for tweet in tweets:
+            splited_tweet = tweet.split(" ")
+            for w in splited_tweet:
+                try:
+                    word_count[word2idx[w]] += 1
+                except:
+                    continue
+
+        # word -> idxのマッピングで制限
+        idxconverter = {}
+        new_idx = 0
+        for old_idx in word2idx.values():
+            if word_count[old_idx] >= WORD_FREQ_MIN :
+                idxconverter[old_idx] = new_idx
+                new_idx += 1
+
+        # word2idxの縮小版を作る
+        filtered_word2idx = {}
+        for word, old_idx in word2idx.items():
+            try:
+                filtered_word2idx[word] = idxconverter[old_idx]
+            except KeyError:
+                continue
+
+        # 保存
+        with open(PREPROCESSED_DATA_PATH+"filtered_word2idx.pickle", mode="wb") as f:
+            pickle.dump(filtered_word2idx, f)
+
+        # 不要な変数を削除
+        del word2idx, word_count, idxconverter
+
+    if not os.path.exists(PREPROCESSED_DATA_PATH+"co_occ_dict_word_count/"):
+            os.mkdir(PREPROCESSED_DATA_PATH+"co_occ_dict_word_count/")
+
+    with Pool(processes=N_JOB) as p:
+        p.map(make_one_day_co_occ_dict, TWEETS_PATHS)
 
     return
 
@@ -181,30 +255,22 @@ def make_one_day_ppmi_list(path_tuple):
         co_occ_dict, word_count = pickle.load(f)
 
     # 単語とidxのマッピングをロード
-    with open(PREPROCESSED_DATA_PATH+"unique_word2idx.pickle", mode="rb") as f:
-        word2idx = pickle.load(f)
-    with open(PREPROCESSED_DATA_PATH+"filtered_word_idx_converter.pickle", mode="rb") as f:
-        idxconverter = pickle.load(f)
-    idx2word = {i: w for w, i in word2idx.items()}
+    with open(PREPROCESSED_DATA_PATH+"filtered_word2idx.pickle", mode="rb") as f:
+        filtered_word2idx = pickle.load(f)
 
     with timer(f"calc ppmi_list {date}", LOGGER):
         # |D| : total number of tokens in corpus
         D = get_number_of_tokens(tweet_path)
 
         ppmi_list = []
-        for target_word_idx in idxconverter.keys():
-            target_word = idx2word[target_word_idx]
+        for target_word, target_word_idx in filtered_word2idx.items():
             cnt = Counter(co_occ_dict[target_word])
-            for co_occ_word, co_occ_freq in cnt.most_common():
-                co_occ_word_idx = word2idx[co_occ_word]
-                if idxconverter.get(co_occ_word_idx):
-                    # 出現頻度の低い単語を無視
-                    ppmi = calc_ppmi(co_occ_freq, word_count, target_word_idx, co_occ_word_idx, D)
-                    if ppmi > 0:
-                        # sparse matrixを作成するため0以上のみ保存
-                        target_word_idx_ = idxconverter[target_word_idx]
-                        co_occ_word_idx_ = idxconverter[co_occ_word_idx]
-                        ppmi_list.append([ppmi, target_word_idx_, co_occ_word_idx_])
+            for co_occ_word_idx, co_occ_freq in cnt.most_common():
+                # 出現頻度の低い単語を無視
+                ppmi = calc_ppmi(co_occ_freq, word_count, target_word_idx, co_occ_word_idx, D)
+                if ppmi > 0:
+                    # sparse matrixを作成するため0以上のみ保存
+                    ppmi_list.append([ppmi, target_word_idx, co_occ_word_idx])
 
         with open(PREPROCESSED_DATA_PATH+"ppmi_list/"+date+".pickle", mode="wb") as f:
             pickle.dump(np.array(ppmi_list), f)
@@ -236,29 +302,6 @@ def make_whole_day_ppmi_list(PATH_TUPLES):
     - WORD_FREQ_MINによって対象単語が制限される
     '''
     ### 対象単語の制限
-    with timer("filter words", LOGGER):
-        with open(PREPROCESSED_DATA_PATH+"unique_word2idx.pickle", mode="rb") as f:
-            word2idx = pickle.load(f)
-
-        # 最新のデータ中の出現回数でフィルタリング
-        DICT_PATHS = sorted(glob.glob(PREPROCESSED_DATA_PATH+"co_occ_dict_word_count/*"))
-        with open(DICT_PATHS[-1], mode="rb") as f:
-            _, word_count = pickle.load(f)
-
-        # word -> idxのマッピングの制限で実現する
-        idxconverter = {}
-        new_idx = 0
-        for old_idx in word2idx.values():
-            if word_count[old_idx] >= WORD_FREQ_MIN :
-                idxconverter[old_idx] = new_idx
-                new_idx += 1
-
-        # 保存
-        with open(PREPROCESSED_DATA_PATH+"filtered_word_idx_converter.pickle", mode="wb") as f:
-            pickle.dump(idxconverter, f)
-
-        del word2idx, word_count, idxconverter
-
     if not os.path.exists(PREPROCESSED_DATA_PATH+"ppmi_list/"):
             os.mkdir(PREPROCESSED_DATA_PATH+"ppmi_list/")
 
@@ -330,10 +373,10 @@ def make_DW2V(param_path, EPS=1e-4):
             os.mkdir(savefile)
 
     # ベクトルの初期化
-    with open(PREPROCESSED_DATA_PATH+"filtered_word_idx_converter.pickle", mode="rb") as f:
-        idxconverter = pickle.load(f)
-    vocab_size = len(idxconverter.keys())
-    del idxconverter
+    with open(PREPROCESSED_DATA_PATH+"filtered_word2idx.pickle", mode="rb") as f:
+        filtered_word2idx = pickle.load(f)
+    vocab_size = len(filtered_word2idx.keys())
+    del filtered_word2idx
     batch_size = vocab_size
     b_ind= util.getbatches(vocab_size, batch_size)
     Ulist,Vlist = util.initvars(vocab_size, T, embed_size)
@@ -396,8 +439,8 @@ def make_DW2V(param_path, EPS=1e-4):
             diff_U, diff_V, diff_U_V = util.check_diff(iteration, savefile)
             diffs.append([diff_U, diff_V, diff_U_V])
 
-            # ほとんど変化しなくなったら終了
-            if (diff_U + diff_V)/2 < EPS and diff_U != 0.:
-                break
+        # ほとんど変化しなくなったら終了
+        if (diff_U + diff_V)/2 < EPS and diff_U != 0.:
+            break
 
     return diffs

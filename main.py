@@ -14,6 +14,7 @@ from core.utils import timer, do_job
 DATA_PATH = os.getenv("DATA_PATH")
 PREPROCESSED_DATA_PATH = os.getenv("PREPROCESSED_DATA_PATH")
 TXT_DATA_NAME = os.getenv("TXT_DATA_NAME")
+print(TXT_DATA_NAME)
 DW2V_PATH = os.getenv("DW2V_PATH")
 PARAM_PATH = os.getenv("PARAM_PATH")
 
@@ -29,7 +30,7 @@ LOGGER.info("job start")
 parser = argparse.ArgumentParser(description='train Dynamic Word Embeddings')
 parser.add_argument('--without_preprocess', type=int, default=0, metavar='N',
                     help='if preprocessor is not neccessary, set 1')
-parser.add_argument('--n_job', type=str, default="5", metavar='N',
+parser.add_argument('--n_job', type=str, default="10", metavar='N',
                     help='number of cpu for multiprocessing')
 parser.add_argument('--word_freq_min', type=str, default="5", metavar='N',
                     help='minmiun freqency for target word')
@@ -55,7 +56,7 @@ if __name__ =="__main__":
 
     # 単語の共起を確認
     with do_job("make co occ dict", LOGGER):
-        from core.make_DW2V import make_unique_word2idx, make_co_occ_dict
+        from core.make_DW2V import make_unique_word2idx, make_whole_day_co_occ_dict
 
         TWEETS_PATHS = glob.glob(PREPROCESSED_DATA_PATH+TXT_DATA_NAME+"/*")
 
@@ -66,8 +67,7 @@ if __name__ =="__main__":
             os.mkdir(PREPROCESSED_DATA_PATH+"co_occ_dict_word_count/")
 
         TWEETS_PATHS = glob.glob(PREPROCESSED_DATA_PATH+TXT_DATA_NAME+"/*")
-        with Pool(processes=N_JOB) as p:
-            p.map(make_co_occ_dict, TWEETS_PATHS)
+        make_whole_day_co_occ_dict(TWEETS_PATHS)
 
     # PPMIの計算
     with do_job("make PPMI", LOGGER):
