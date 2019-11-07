@@ -90,14 +90,15 @@ def preprocess_one_day_tweet(tweet_path):
                     continue
 
         tweet_df = pd.DataFrame(tweet_list)
+        tweet_df = tweet_df[["body", "created_at"]]
         tweet_list = None # 不必要な変数を削除
 
 
     ### Tweet分の前処理
     # ノイズを処理
     with timer(f"cleaning {date}", LOGGER):
-        tweet_df["source_url"] = tweet_df["source_url"]\
-                                    .map(lambda x: x.encode('utf-16','surrogatepass').decode('utf-16'))
+        # tweet_df["source_url"] = tweet_df["source_url"]\
+        #                             .map(lambda x: x.encode('utf-16','surrogatepass').decode('utf-16'))
         tweet_df["body"] = tweet_df["body"].map(lambda x: remove_noise(x))
 
     # 標準化
