@@ -6,7 +6,17 @@ import requests
 from contextlib import contextmanager
 
 
+# +
 SLACK_URL = os.getenv("SLACK_URL", "")
+
+# プロキシの設定
+proxies = {
+  'http': None,
+  'https': None,
+}
+
+
+# -
 
 def progress_reporter(text, slack_url=SLACK_URL):
     '''該当slackチャンネルにメッセージを送信する
@@ -14,7 +24,7 @@ def progress_reporter(text, slack_url=SLACK_URL):
     '''
     if slack_url != "":
         data = json.dumps({"text": text, "username": 'progress_report'})
-        requests.post(slack_url, data=data)
+        requests.post(slack_url, data=data, proxies=proxies)
     return
 
 

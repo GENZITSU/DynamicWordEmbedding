@@ -8,7 +8,7 @@ verify_ssl = true
 [packages]
 scikit-learn = "*"
 numpy = "*"
-pandas = "*"
+pandas = "==0.25.1"
 japanize-matplotlib = "*"
 seaborn = "*"
 matplotlib = "*"
@@ -23,13 +23,10 @@ neologdn = "*"
 mecab-python3 ="*"
 gensim = "*"
 pyldavis = "*"
-torch = "*"
-torchvision = "*"
+torch = "==1.3.0"
+torchvision = "==0.4.1"
 jupyter-contrib-nbextensions = "*"
-cython = "*"
 requests = "*"
-dask = {extras = ["array"],version = "*"}
-cupy-cuda90 = "*"
 umap-learn = "*"
 
 [requires]
