@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import json
 import glob
@@ -52,7 +53,7 @@ def check_one_day_word(tweet_path):
         word_set = set(tweets)
 
         with open(PREPROCESSED_DATA_PATH+"word_sets/"+date+".pickle", mode="wb") as f:
-            pickle.dump(word_set, f)
+            pickle.dump(word_set, f, protocol=-1)
     return
 
 
@@ -80,7 +81,7 @@ def make_unique_word2idx(TWEETS_PATHS):
 
     # 保存
     with open(PREPROCESSED_DATA_PATH+"unique_word2idx.pickle", mode="wb") as f:
-        pickle.dump(word2idx, f)
+        pickle.dump(word2idx, f, protocol=-1)
     return
 
 
@@ -144,7 +145,7 @@ def make_one_day_co_occ_dict(tweet_path, window_size=11):
         # 保存
         save_path = PREPROCESSED_DATA_PATH+"co_occ_dict_word_count/"+date+".pickle"
         with open(save_path, mode="wb") as f:
-            pickle.dump((co_occ_dict, word_count), f)
+            pickle.dump((co_occ_dict, word_count), f, protocol=-1)
 
     return
 
@@ -211,7 +212,7 @@ def make_whole_day_co_occ_dict(TWEETS_PATHS, window_size=11):
 
         # 保存
         with open(PREPROCESSED_DATA_PATH+"filtered_word2idx.pickle", mode="wb") as f:
-            pickle.dump(filtered_word2idx, f)
+            pickle.dump(filtered_word2idx, f, protocol=-1)
 
         # 不要な変数を削除
         del word2idx, word_count, idxconverter
@@ -251,20 +252,20 @@ def make_one_day_ppmi_list(path_tuple):
     tweet_path, co_occ_path = path_tuple
     date = tweet_path[-17:-7]
 
-    with open(co_occ_path, mode="rb") as f:
-        co_occ_dict, word_count = pickle.load(f)
+    with timer(f"load data {date}", LOGGER):
+        with open(co_occ_path, mode="rb") as f:
+            co_occ_dict, word_count = pickle.load(f)
 
-    # 単語とidxのマッピングをロード
-    with open(PREPROCESSED_DATA_PATH+"filtered_word2idx.pickle", mode="rb") as f:
-        filtered_word2idx = pickle.load(f)
+        # 単語とidxのマッピングをロード
+        with open(PREPROCESSED_DATA_PATH+"filtered_word2idx.pickle", mode="rb") as f:
+            filtered_word2idx = pickle.load(f)
 
-    with timer(f"calc ppmi_list {date}", LOGGER):
+    with do_job(f"calc ppmi_list {date}", LOGGER):
         # |D| : total number of tokens in corpus
         D = get_number_of_tokens(tweet_path)
-
         ppmi_list = []
         for target_word, target_word_idx in filtered_word2idx.items():
-            cnt = Counter(co_occ_dict[target_word])
+            cnt = Counter(co_occ_dict.pop(target_word))
             for co_occ_word_idx, co_occ_freq in cnt.most_common():
                 # 出現頻度の低い単語を無視
                 ppmi = calc_ppmi(co_occ_freq, word_count, target_word_idx, co_occ_word_idx, D)
@@ -273,7 +274,7 @@ def make_one_day_ppmi_list(path_tuple):
                     ppmi_list.append([ppmi, target_word_idx, co_occ_word_idx])
 
         with open(PREPROCESSED_DATA_PATH+"ppmi_list/"+date+".pickle", mode="wb") as f:
-            pickle.dump(np.array(ppmi_list), f)
+            pickle.dump(np.array(ppmi_list), f, protocol=-1)
 
     return
 
@@ -330,6 +331,7 @@ def get_number_of_tokens(tweet_path):
     del tweet_df
     tweets = " ".join(tweets)
     D = len(tweets)
+    del tweets
     return D
 
 
@@ -338,9 +340,9 @@ def calc_ppmi(co_occ_freq, word_count, target_word_idx, co_occ_word_idx, D):
     based on eq (1) from
     https://arxiv.org/pdf/1703.00607.pdf
     '''
-    pmi = np.log(co_occ_freq) + np.log(D)
-    pmi -= np.log(word_count[target_word_idx])
-    pmi -= np.log(word_count[co_occ_word_idx])
+    pmi = np.log(co_occ_freq+1) + np.log(D)
+    pmi -= np.log(word_count[target_word_idx]+1)
+    pmi -= np.log(word_count[co_occ_word_idx]+1)
     return max(pmi, 0)
 
 
@@ -351,7 +353,6 @@ def make_DW2V(param_path, EPS=1e-4):
     param_path: str
     ハイパラを記したjsonファイルのpath
     '''
-
     # PPMIのパスを読み込む
     PPMI_PATHS = sorted(glob.glob(PREPROCESSED_DATA_PATH+"ppmi_list/*"))
     # number of time spans
@@ -428,8 +429,8 @@ def make_DW2V(param_path, EPS=1e-4):
                                                     lam,tau,gam,ind,embed_size,iflag)
 
             # 保存
-            pickle.dump(Ulist, open(f"{savefile}ngU_iter{iteration}.pickle", mode="wb"))
-            pickle.dump(Vlist, open(f"{savefile}ngV_iter{iteration}.pickle", mode="wb"))
+            pickle.dump(Ulist, open(f"{savefile}ngU_iter{iteration}.pickle", mode="wb"), protocol=-1)
+            pickle.dump(Vlist, open(f"{savefile}ngV_iter{iteration}.pickle", mode="wb"), protocol=-1)
 
             if iteration >= 2:
                 # HDDの節約
