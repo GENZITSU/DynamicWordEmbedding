@@ -24,7 +24,7 @@ DW2V_PATH = os.getenv("DW2V_PATH")
 # Logging
 LOGGER = logging.getLogger('JobLogging')
 LOGGER.setLevel(10)
-fh = logging.FileHandler('preprocess.log')
+fh = logging.FileHandler('job.log')
 LOGGER.addHandler(fh)
 formatter = logging.Formatter('%(asctime)s:%(lineno)d:%(levelname)s:%(message)s')
 fh.setFormatter(formatter)
@@ -126,18 +126,27 @@ def make_one_day_co_occ_dict(tweet_path, window_size=11):
             splited_tweet = tweet.split(" ")
             tweet_len = len(splited_tweet)
             for i, w in enumerate(splited_tweet):
-                try:
-                    word_count[filtered_word2idx[w]] += 1
-                    for window_idx in range(1, int((window_size + 1)/2+1)):
-                        if (i - window_idx >= 0) and i+window_idx < tweet_len:
-                            co_list = co_occ_dict[w]
-                            co_occ_word = splited_tweet[i-window_idx]
-                            # idで保存
-                            co_list.append(filtered_word2idx[co_occ_word])
-                            co_occ_dict[w] = co_list
-                except KeyError:
-                    # filtered word2idxにないものは無視
+                w_idx = filtered_word2idx.get(w)
+                if w_idx:
+                    word_count[w_idx] += 1
+                else:
                     continue
+
+                # 単語の検索範囲を指定
+                window_radius = int((window_size - 1)/2
+                first = i - window_radius
+                if first < 0:
+                    first = 0
+                last = i + window_radius
+                if last > tweet_len:
+                    last  = tweet_len
+
+                # 共起語のidを保存
+                for word_idx in range(first, last):
+                    co_occ_word = splited_tweet[word_idx]
+                    co_occ_idx = filtered_word2idx.get(co_occ_word)
+                    if co_occ_idx:
+                        co_occ_dict[w].append(co_occ_idx)
 
         #不要な変数を削除
         del co_list, splited_tweet
@@ -361,15 +370,16 @@ def make_DW2V(param_path, EPS=1e-4):
     ## PARAMETERS
     params = json.load(open(param_path, mode="r"))
     ITERS = params["ITERS"]
+    embed_size  = params["embed_size"]
     lam = params["lam"] # weight decay
     gam = params["gam"] # forcing regularizer
     tau = params["tau"]  # smoothing regularizer
-    embed_size  = params["embed_size"]
-    emph = params["emph"] # emphasize the nonzero
+    emph = params["emph"] # emphasize value will not be zero
 
 
     # 保存先の確保
-    savefile = DW2V_PATH+"Lam_"+str(lam)+"_Tau_"+str(tau)+"_Gam_"+str(gam)+"_A_"+str(emph)+"/"
+    savefile = DW2V_PATH+"Lam_"+str(lam)+"_Tau_"+str(tau)+"_Gam_"+str(gam)\
+                                            +"_Dim_"+str(embed_size)+"_A_"+str(emph)+"/"
     if not os.path.exists(savefile):
             os.mkdir(savefile)
 
@@ -441,7 +451,8 @@ def make_DW2V(param_path, EPS=1e-4):
             diffs.append([diff_U, diff_V, diff_U_V])
 
         # ほとんど変化しなくなったら終了
+        LOGGER.info(f"diff_U: {diff_U}\n diff_V: {diff_V}")
         if (diff_U + diff_V)/2 < EPS and diff_U != 0.:
             break
-
+    pickle.dump(diffs, open(f"{savefile}diffs.pickle", mode="wb"), protocol=-1)
     return diffs
