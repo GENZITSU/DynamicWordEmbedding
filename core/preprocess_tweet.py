@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 '''
 Twitter Dataに対する 前処理関数達
 '''

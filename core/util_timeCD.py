@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
 '''
 utility functions for the CD method based on eq (8)
 from https://arxiv.org/pdf/1703.00607.pdf
@@ -67,12 +66,12 @@ def check_diff(iteration, savefile):
     '''
     if iteration == 0:
         return 0, 0, 0
-    Ulist_old = pickle.load(open( f"{savefile}ngU_iter{iteration-1}.pickle", mode="rb" ))
-    Vlist_old = pickle.load(open( f"{savefile}ngV_iter{iteration-1}.pickle", mode="rb" ))
-    Ulist_new = pickle.load(open( f"{savefile}ngU_iter{iteration}.pickle", mode="rb" ))
-    Vlist_new = pickle.load(open( f"{savefile}ngV_iter{iteration}.pickle", mode="rb" ))
+    Ulist_old = pickle.load(open( f"{savefile}/ngU_iter{iteration-1}.pickle", mode="rb" ))
+    Vlist_old = pickle.load(open( f"{savefile}/ngV_iter{iteration-1}.pickle", mode="rb" ))
+    Ulist_new = pickle.load(open( f"{savefile}/ngU_iter{iteration}.pickle", mode="rb" ))
+    Vlist_new = pickle.load(open( f"{savefile}/ngV_iter{iteration}.pickle", mode="rb" ))
     
-    diff_U = [np.sum((new_v - old_v) ** 2, axis=1).mean() for old_v, new_v in zip(Ulist_old, Ulist_new)]
-    diff_V = [np.sum((new_v - old_v) ** 2, axis=1).mean() for old_v, new_v in zip(Vlist_old, Vlist_new)]
-    diff_U_V = [np.sum((U - V) ** 2, axis=1).mean() for U, V in zip(Ulist_new, Vlist_new)]
+    diff_U = [np.sqrt(np.sum((new_v - old_v) ** 2, axis=1)).mean() for old_v, new_v in zip(Ulist_old, Ulist_new)]
+    diff_V = [np.sqrt(np.sum((new_v - old_v) ** 2, axis=1)).mean() for old_v, new_v in zip(Vlist_old, Vlist_new)]
+    diff_U_V = [np.sqrt(np.sum((U - V) ** 2, axis=1)).mean() for U, V in zip(Ulist_new, Vlist_new)]
     return np.mean(diff_U), np.mean(diff_V ), np.mean(diff_U_V)

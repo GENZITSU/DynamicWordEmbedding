@@ -47,7 +47,8 @@ def check_one_day_word(tweet_path):
 
         tweets = df["body"].values
         del df #不要な変数を削除
-        tweets = " ".join(tweets)
+        tweets = " ".join(tweets).lower()
+        tweets
         tweets = tweets.split(" ")
 
         word_set = set(tweets)
@@ -85,7 +86,7 @@ def make_unique_word2idx(TWEETS_PATHS):
     return
 
 
-def make_one_day_co_occ_dict(tweet_path, window_size=11):
+def make_one_day_co_occ_dict(tweet_path, window_size=21):
     '''ある日の単語の共起と単語の出現回数を保存する
     Params
     ------
@@ -119,11 +120,11 @@ def make_one_day_co_occ_dict(tweet_path, window_size=11):
         del df #不要な変数を削除
 
     # 単語の共起を記録
-    with timer(f"make co_occ_dict {date}", LOGGER):
-        co_occ_dict = {w: [] for w in filtered_word2idx.keys()}
+    with do_job(f"make co_occ_dict {date}", LOGGER):
+        co_occ_dict = {w: {} for w in filtered_word2idx.keys()}
         word_count = np.zeros(filtered_word_num)
         for tweet in tweets:
-            splited_tweet = tweet.split(" ")
+            splited_tweet = tweet.lower().split(" ")
             tweet_len = len(splited_tweet)
             for i, w in enumerate(splited_tweet):
                 w_idx = filtered_word2idx.get(w)
@@ -133,7 +134,7 @@ def make_one_day_co_occ_dict(tweet_path, window_size=11):
                     continue
 
                 # 単語の検索範囲を指定
-                window_radius = int((window_size - 1)/2
+                window_radius = int((window_size - 1)/2)
                 first = i - window_radius
                 if first < 0:
                     first = 0
@@ -146,10 +147,13 @@ def make_one_day_co_occ_dict(tweet_path, window_size=11):
                     co_occ_word = splited_tweet[word_idx]
                     co_occ_idx = filtered_word2idx.get(co_occ_word)
                     if co_occ_idx:
-                        co_occ_dict[w].append(co_occ_idx)
+                        if co_occ_dict[w].get(co_occ_idx):
+                            co_occ_dict[w][co_occ_idx] += 1
+                        else:
+                            co_occ_dict[w][co_occ_idx] = 1
 
         #不要な変数を削除
-        del co_list, splited_tweet
+        del splited_tweet
 
         # 保存
         save_path = PREPROCESSED_DATA_PATH+"co_occ_dict_word_count/"+date+".pickle"
@@ -159,7 +163,7 @@ def make_one_day_co_occ_dict(tweet_path, window_size=11):
     return
 
 
-def make_whole_day_co_occ_dict(TWEETS_PATHS, window_size=11):
+def make_whole_day_co_occ_dict(TWEETS_PATHS, window_size=21):
     '''単語の共起と単語の出現回数を保存する
     Params
     ------
@@ -188,20 +192,22 @@ def make_whole_day_co_occ_dict(TWEETS_PATHS, window_size=11):
             word2idx = pickle.load(f)
         unique_word_num = len(word2idx.keys())
 
-        with open(TWEETS_PATHS[-1], mode="rb") as f:
-            df = pickle.load(f)
-        tweets = df["body"].values
-        del df
-
+        
         # カウント
         word_count = np.zeros(unique_word_num)
-        for tweet in tweets:
-            splited_tweet = tweet.split(" ")
-            for w in splited_tweet:
-                try:
-                    word_count[word2idx[w]] += 1
-                except:
-                    continue
+        for tweet_path in TWEETS_PATHS[-7:]:
+            with open(tweet_path, mode="rb") as f:
+                df = pickle.load(f)
+            tweets = df["body"].values
+            del df
+            
+            for tweet in tweets:
+                splited_tweet = tweet.lower().split(" ")
+                for w in splited_tweet:
+                    try:
+                        word_count[word2idx[w]] += 1
+                    except:
+                        continue
 
         # word -> idxのマッピングで制限
         idxconverter = {}
@@ -274,8 +280,8 @@ def make_one_day_ppmi_list(path_tuple):
         D = get_number_of_tokens(tweet_path)
         ppmi_list = []
         for target_word, target_word_idx in filtered_word2idx.items():
-            cnt = Counter(co_occ_dict.pop(target_word))
-            for co_occ_word_idx, co_occ_freq in cnt.most_common():
+            cnt = co_occ_dict.pop(target_word)
+            for co_occ_word_idx, co_occ_freq in cnt.items():
                 # 出現頻度の低い単語を無視
                 ppmi = calc_ppmi(co_occ_freq, word_count, target_word_idx, co_occ_word_idx, D)
                 if ppmi > 0:
@@ -355,7 +361,7 @@ def calc_ppmi(co_occ_freq, word_count, target_word_idx, co_occ_word_idx, D):
     return max(pmi, 0)
 
 
-def make_DW2V(param_path, EPS=1e-4):
+def make_DW2V(param_path, EPS=1e-3):
     '''時系列毎の単語ベクトルを作成する
     based on eq (8) from
     https://arxiv.org/pdf/1703.00607.pdf
@@ -396,47 +402,20 @@ def make_DW2V(param_path, EPS=1e-4):
     diffs = []
     for iteration in range(ITERS):
         with do_job(f"iter {iteration+1} / {ITERS}", LOGGER):
+            # 1 epoch前のベクトルを読み出す
             try:
                 Ulist = pickle.load(open(f"{savefile}ngU_iter{iteration}.pickle", mode="rb" ))
                 Vlist = pickle.load(open(f"{savefile}ngV_iter{iteration}.pickle", mode="rb" ))
             except(IOError):
                 pass
-
-            # shuffle times
-            if iteration == 0:
-                times = np.arange(T)
-            else:
-                times = np.random.permutation(range(T))
-
-            for t in times:
-                with timer(f"Update {t} th span Vector", LOGGER):
-                    f = PPMI_PATHS[t]
-                    pmi = util.getmat(f,vocab_size,False)
-                    for ind in b_ind:
-                        ## UPDATE U, V
-                        pmi_seg = pmi[:,ind]
-
-                        if t==0:
-                            vp = np.zeros((len(ind),embed_size))
-                            up = np.zeros((len(ind),embed_size))
-                            iflag = 1
-                        else:
-                            vp = Vlist[t-1][ind]
-                            up = Ulist[t-1][ind]
-                            iflag = 0
-
-                        if t==T-1:
-                            vn = np.zeros((len(ind),embed_size))
-                            un = np.zeros((len(ind),embed_size))
-                            iflag = 1
-                        else:
-                            vn = Vlist[t+1][ind]
-                            un = Ulist[t+1][ind]
-                            iflag = 0
-                        Vlist[t][ind] = util.update(Ulist[t],emph*pmi_seg,vp,vn,
-                                                    lam,tau,gam,ind,embed_size,iflag)
-                        Ulist[t][ind] = util.update(Vlist[t],emph*pmi_seg,up,un,
-                                                    lam,tau,gam,ind,embed_size,iflag)
+    
+            # 更新
+            times = np.arange(T)
+            with Pool(processes=10) as p:
+                    retVal = p.map(update_t_th_vector, times)
+            for t, U, V in retVal:
+                Ulist[t] = U
+                Vlist[t] = V
 
             # 保存
             pickle.dump(Ulist, open(f"{savefile}ngU_iter{iteration}.pickle", mode="wb"), protocol=-1)
@@ -452,7 +431,46 @@ def make_DW2V(param_path, EPS=1e-4):
 
         # ほとんど変化しなくなったら終了
         LOGGER.info(f"diff_U: {diff_U}\n diff_V: {diff_V}")
-        if (diff_U + diff_V)/2 < EPS and diff_U != 0.:
+        if min(diff_U, diff_V/2) < EPS and diff_U != 0.:
             break
-    pickle.dump(diffs, open(f"{savefile}diffs.pickle", mode="wb"), protocol=-1)
+
+    with oepn(f"{savefile}diffs.pickle", mode="wb") as f:
+        pickle.dump(diffs, f, protocol=-1)
     return diffs
+
+
+# 便利関数
+def update_t_th_vector(t):
+    global Vlist, Ulist
+    global PPMI_PATHS
+    global embed_size, lam, gam, tau, emph
+    print(PPMI_PATHS)
+    f = PPMI_PATHS[t]
+    pmi = util.getmat(f,vocab_size,False)
+    for ind in b_ind:
+        ## UPDATE U, V
+        pmi_seg = pmi[:,ind]
+        if t==0:
+            vp = np.zeros((len(ind),embed_size))
+            up = np.zeros((len(ind),embed_size))
+            iflag = 1
+        else:
+            vp = Vlist[t-1][ind]
+            up = Ulist[t-1][ind]
+            iflag = 0
+
+        if t==T-1:
+            vn = np.zeros((len(ind),embed_size))
+            un = np.zeros((len(ind),embed_size))
+            iflag = 1
+        else:
+            vn = Vlist[t+1][ind]
+            un = Ulist[t+1][ind]
+            iflag = 0
+        U_t = util.update(Ulist[t],emph*pmi_seg,vp,vn,
+                                    lam,tau,gam,ind,embed_size,iflag)
+        V_t = util.update(Vlist[t],emph*pmi_seg,up,un,
+                                    lam,tau,gam,ind,embed_size,iflag)
+    return t, U_t, V_t
+
+

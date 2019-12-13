@@ -2,6 +2,7 @@
 import os
 import time
 import json
+import logging
 import requests
 from contextlib import contextmanager
 
@@ -17,6 +18,18 @@ proxies = {
 
 
 # -
+
+def start_logging(filename="job.log"):
+    '''loggerを起動させる
+    '''
+    LOGGER = logging.getLogger('LoggingTest')
+    LOGGER.setLevel(10)
+    fh = logging.FileHandler(filename)
+    LOGGER.addHandler(fh)
+    formatter = logging.Formatter('%(asctime)s:%(lineno)d:%(levelname)s:%(message)s')
+    fh.setFormatter(formatter)
+    return LOGGER
+
 
 def progress_reporter(text, slack_url=SLACK_URL):
     '''該当slackチャンネルにメッセージを送信する
@@ -40,7 +53,7 @@ def timer(name, LOGGER):
 
 @contextmanager
 def do_job(name, LOGGER):
-    '''with文で処理にかかる時間を測りながらslackに追加
+    '''with文で処理にかかる時間を測りながらslackに通知
     '''
     LOGGER.info(f"start [{name}]")
     start = time.time()
