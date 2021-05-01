@@ -1,4 +1,4 @@
-# Dynamic Word 2 Vec (DW2V)
+# Dynamic Word Embedding
 
 implementation of dynamic word embedding based on  
 [Dynamic Word Embeddings for Evolving Semantic Discovery.](https://arxiv.org/abs/1703.00607)
